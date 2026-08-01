@@ -1,26 +1,52 @@
 #!/usr/bin/env python3
+import os
 import sys
-from reportlab.lib.pagesizes import letter
+import textwrap
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 def make_pdf(text, output_filename):
-    c = canvas.Canvas(output_filename, pagesize=letter)
+    c = canvas.Canvas(output_filename, pagesize=A4)
     c.setFont("Courier", 10)
 
-    y = 750
+    y = 800
     line_height = 12
+    max_chars_per_line = 90
 
-    for line in text.splitlines():
-        if y < 40:
-            c.showPage()
-            c.setFont("Courier", 10)
-            y = 750
-        c.drawString(40, y, line[:90])
-        y -= line_height
+    for raw_line in text.splitlines():
+        wrapped_lines = textwrap.wrap(raw_line, width=max_chars_per_line) if raw_line.strip() else [""]
+
+        for line in wrapped_lines:
+            if y < 40:
+                c.showPage()
+                c.setFont("Courier", 10)
+                y = 800
+
+            c.drawString(40, y, line)
+            y -= line_height
 
     c.save()
 
 if __name__ == "__main__":
-    out_file = sys.argv[1] if len(sys.argv) > 1 else "subtitles.pdf"
-    content = sys.stdin.read()
+    # Case 1: An argument is provided and it points directly to an existing local file
+    if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
+        input_file = sys.argv[1]
+        with open(input_file, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+        # Strip original extension and replace it with .pdf
+        base_name, _ = os.path.splitext(input_file)
+        out_file = f"{base_name}.pdf"
+
+    # Case 2: Data is being streamed directly into standard input (piped or redirected)
+    elif not sys.stdin.isatty():
+        content = sys.stdin.read()
+        out_file = "stdout.pdf"
+
+    # Case 3: Script executed raw without a valid file source or stdin stream pipeline
+    else:
+        print("Usage:", file=sys.stderr)
+        print("  python3 str2pdf.py input.txt       -> Generates input.pdf", file=sys.stderr)
+        print("  cat input.txt | python3 script.py -> Generates stdout.pdf", file=sys.stderr)
+        sys.exit(1)
+
     make_pdf(content, out_file)
