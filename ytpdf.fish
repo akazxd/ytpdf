@@ -31,7 +31,7 @@ function ytpdf --description "Download YouTube subtitles to <videoid>.srt and co
 
     if test -f "$srt_file"
         echo "Converting $srt_file to $pdf_file..."
-        cat "$srt_file" | ~/.local/bin/str2pdf "$pdf_file"
+        ~/.local/bin/str2pdf $srt_file
         echo "Done! Saved $srt_file and $pdf_file."
     else
         echo "Error: Failed to download $srt_file"
